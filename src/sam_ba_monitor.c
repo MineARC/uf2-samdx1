@@ -132,6 +132,15 @@ void sam_ba_monitor_run(void) {
 
     // Start waiting some cmd
     while (1) {
+        // Check if exit button is pressed (active low) after USB enumeration
+#ifdef BOOT_EXIT_BUTTON_PIN_1
+        uint32_t button_state = PORT->Group[BOOT_EXIT_BUTTON_PIN_1 / 32].IN.reg;
+        if (!(button_state & (1 << (BOOT_EXIT_BUTTON_PIN_1 % 32)))) {
+            // Button is pressed (low), exit to application
+            resetIntoApp();
+        }
+#endif
+        
         process_msc();
         length = cdc_read_buf(data, SIZEBUFMAX);
         data[length] = 0;

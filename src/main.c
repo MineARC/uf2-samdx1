@@ -120,6 +120,14 @@ static void check_start_application(void) {
             resetHorizon = timerHigh + 50;
             return;
         }
+    } else {
+        // App didn't opt in to single reset, but still set a timeout for USB enumeration
+        if (RESET_CONTROLLER->RCAUSE.bit.POR || *DBL_TAP_PTR != DBL_TAP_MAGIC_QUICK_BOOT) {
+            *DBL_TAP_PTR = DBL_TAP_MAGIC_QUICK_BOOT;
+            // Exit to app if USB doesn't enumerate within ~1.5s
+            resetHorizon = timerHigh + 50;
+            return;
+        }
     }
 #endif
 
@@ -314,8 +322,26 @@ int main(void) {
     RGBLED_set_color(COLOR_START);
     led_tick_step = 10;
 
+    /* Initialize exit button (PB04) as input with pullup */
+#ifdef BOOT_EXIT_BUTTON_PIN_1
+    PINOP(BOOT_EXIT_BUTTON_PIN_1, DIRCLR);   // Set as input
+    PORT->Group[BOOT_EXIT_BUTTON_PIN_1 / 32].PINCFG[BOOT_EXIT_BUTTON_PIN_1 % 32].reg = PORT_PINCFG_PULLEN | PORT_PINCFG_INEN;  // Enable pullup and input
+    PINOP(BOOT_EXIT_BUTTON_PIN_1, OUTSET);   // Pull up
+#endif
+
     /* Wait for a complete enum on usb or a '#' char on serial line */
     while (1) {
+        // Check if exit button is pressed (active low) after USB enumeration
+#ifdef BOOT_EXIT_BUTTON_PIN_1
+        if (main_b_cdc_enable) {
+            uint32_t button_state = PORT->Group[BOOT_EXIT_BUTTON_PIN_1 / 32].IN.reg;
+            if (!(button_state & (1 << (BOOT_EXIT_BUTTON_PIN_1 % 32)))) {
+                // Button is pressed (low), exit to application
+                resetIntoApp();
+            }
+        }
+#endif
+
         if (USB_Ok()) {
             if (!main_b_cdc_enable) {
 #if USE_SINGLE_RESET

@@ -276,13 +276,27 @@ void RGBLED_set_color(uint32_t color);
 // Not all targets have a LED
 #if defined(LED_PIN)
 #if !defined(LED_PIN_PULLUP)
+#if defined(LED2_PIN)
+#define LED_MSC_OFF() do { PINOP(LED_PIN, OUTCLR); PINOP(LED2_PIN, OUTCLR); } while(0)
+#define LED_MSC_ON() do { PINOP(LED_PIN, OUTSET); PINOP(LED2_PIN, OUTSET); } while(0)
+#else
 #define LED_MSC_OFF() PINOP(LED_PIN, OUTCLR)
 #define LED_MSC_ON() PINOP(LED_PIN, OUTSET)
+#endif
+#else
+#if defined(LED2_PIN)
+#define LED_MSC_OFF() do { PINOP(LED_PIN, OUTSET); PINOP(LED2_PIN, OUTSET); } while(0)
+#define LED_MSC_ON() do { PINOP(LED_PIN, OUTCLR); PINOP(LED2_PIN, OUTCLR); } while(0)
 #else
 #define LED_MSC_OFF() PINOP(LED_PIN, OUTSET)
 #define LED_MSC_ON() PINOP(LED_PIN, OUTCLR)
 #endif
+#endif
+#if defined(LED2_PIN)
+#define LED_MSC_TGL() do { PINOP(LED_PIN, OUTTGL); PINOP(LED2_PIN, OUTTGL); } while(0)
+#else
 #define LED_MSC_TGL() PINOP(LED_PIN, OUTTGL)
+#endif
 #else
 #define LED_MSC_OFF()
 #define LED_MSC_ON()

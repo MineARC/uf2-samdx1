@@ -86,4 +86,8 @@ void system_init(void) {
     // current_cpu_frequency_MHz = 48;
 }
 
-void SysTick_Handler(void) { LED_TICK(); }
+void SysTick_Handler(void) { 
+    LED_TICK();
+    // Feed the watchdog timer if enabled
+    WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
+}

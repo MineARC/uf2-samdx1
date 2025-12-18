@@ -171,10 +171,27 @@ extern char _end;
  *  \return Unused (ANSI-C compatibility).
  */
 int main(void) {
-    // if VTOR is set, we're not running in bootloader mode; halt
-    if (SCB->VTOR)
-        while (1) {
-        }
+    // if VTOR is set, we're not running in bootloader mode; reset instead of hanging
+    if (SCB->VTOR) {
+        NVIC_SystemReset();
+    }
+
+    /* Enable Watchdog Timer for bootloader protection (~2 seconds) */
+#if defined(SAMD21)
+    // SAMD21: Configure WDT for ~2 seconds (2048 cycles @ 1kHz)
+    WDT->CTRL.reg = 0;
+    while(WDT->STATUS.bit.SYNCBUSY);
+    WDT->CONFIG.reg = WDT_CONFIG_PER_2K;
+    WDT->CTRL.reg = WDT_CTRL_ENABLE;
+    while(WDT->STATUS.bit.SYNCBUSY);
+#elif defined(SAMD51)
+    // SAMD51: Configure WDT for ~2 seconds (2048 cycles @ 1kHz)
+    WDT->CTRLA.reg = 0;
+    while(WDT->SYNCBUSY.bit.ENABLE);
+    WDT->CONFIG.reg = WDT_CONFIG_PER_CYC2048;
+    WDT->CTRLA.reg = WDT_CTRLA_ENABLE;
+    while(WDT->SYNCBUSY.bit.ENABLE);
+#endif
 
 #if defined(SAMD21)
     // Check for voltage too low, and set up brownout protection.

@@ -117,4 +117,8 @@ void system_init(void) {
 
 }
 
-void SysTick_Handler(void) { LED_TICK(); }
+void SysTick_Handler(void) { 
+    LED_TICK();
+    // Feed the watchdog timer if enabled
+    WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
+}

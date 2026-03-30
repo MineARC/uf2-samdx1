@@ -344,18 +344,26 @@ int main(void) {
     PINOP(BOOT_EXIT_BUTTON_PIN_1, DIRCLR);   // Set as input
     PORT->Group[BOOT_EXIT_BUTTON_PIN_1 / 32].PINCFG[BOOT_EXIT_BUTTON_PIN_1 % 32].reg = PORT_PINCFG_PULLEN | PORT_PINCFG_INEN;  // Enable pullup and input
     PINOP(BOOT_EXIT_BUTTON_PIN_1, OUTSET);   // Pull up
+    
+    // Prime button state as "pressed" (0) so held button doesn't trigger on first check
+    uint32_t prev_button_state = 0;
 #endif
 
     /* Wait for a complete enum on usb or a '#' char on serial line */
     while (1) {
-        // Check if exit button is pressed (active low) after USB enumeration
+        // Check for high-to-low transition on exit button after USB enumeration
 #ifdef BOOT_EXIT_BUTTON_PIN_1
         if (main_b_cdc_enable) {
             uint32_t button_state = PORT->Group[BOOT_EXIT_BUTTON_PIN_1 / 32].IN.reg;
-            if (!(button_state & (1 << (BOOT_EXIT_BUTTON_PIN_1 % 32)))) {
-                // Button is pressed (low), exit to application
+            uint32_t button_pin_mask = (1 << (BOOT_EXIT_BUTTON_PIN_1 % 32));
+            
+            // Only trigger on high-to-low transition (fresh button press)
+            if ((prev_button_state & button_pin_mask) && !(button_state & button_pin_mask)) {
+                // Button transitioned from released to pressed, exit to application
                 resetIntoApp();
             }
+            
+            prev_button_state = button_state;
         }
 #endif
 

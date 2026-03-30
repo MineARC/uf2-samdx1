@@ -207,6 +207,25 @@ void led_init() {
     PINOP(BOARD_NEOPIXEL_POWERPIN, DIRSET);
     PINOP(BOARD_NEOPIXEL_POWERPIN, OUTSET);
 #endif
+
+    // Initialize power latch pins to keep system powered after startup
+#if defined(POWER_LATCH_DATA) && defined(POWER_LATCH_ENABLE) && defined(POWER_LATCH_OUTPUT_ENABLE)
+    // Set all pins as outputs
+    PINOP(POWER_LATCH_DATA, DIRSET);
+    PINOP(POWER_LATCH_ENABLE, DIRSET);
+    PINOP(POWER_LATCH_OUTPUT_ENABLE, DIRSET);
+
+    // Set latch data high first
+    PINOP(POWER_LATCH_DATA, OUTSET);
+
+    // Toggle latch enable low then high to latch the data
+    PINOP(POWER_LATCH_ENABLE, OUTCLR);
+    for(int i=0; i<100; i++) /* 0.01ms */ __asm__ __volatile__("");
+    PINOP(POWER_LATCH_ENABLE, OUTSET);
+
+    // Enable output (active low)
+    PINOP(POWER_LATCH_OUTPUT_ENABLE, OUTCLR);
+#endif
 }
 
 #if defined(BOARD_RGBLED_CLOCK_PIN)
